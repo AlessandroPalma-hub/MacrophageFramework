@@ -1,0 +1,32 @@
+Package: MacrophageFramework
+Type: Package
+Title: Multidimensional Macrophage Profiling
+Version: 0.99.0
+Authors@R:
+    person(
+        "Alessandro", "Palma",
+        email = "alessandro.palma2@uniroma1.it",
+        role = c("aut", "cre", "cph")
+    )
+Description:
+    Provides a multidimensional computational framework for macrophage
+    profiling based on an ontology of biological programs. The framework
+    independently detects macrophage populations and characterizes their
+    lineage-associated and functional-state programs using program-level
+    expression scores, detection coverage, gene-program coherence, cluster
+    profiles, and profile similarity. The framework is designed to capture
+    continuous and combinatorial macrophage states without imposing
+    binary activation categories.
+License: GPL-3
+Encoding: UTF-8
+Depends:
+    R (>= 4.3.0)
+Imports:
+    ggplot2,
+    Matrix,
+    patchwork,
+    SeuratObject
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+RoxygenNote: 8.0.0
