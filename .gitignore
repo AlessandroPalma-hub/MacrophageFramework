@@ -1,0 +1,18 @@
+# R / RStudio
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+*.Rproj
+
+# macOS
+.DS_Store
+
+# Analysis outputs
+MacrophageFramework_output*/
+Benchmark/
+CellTypist_input/
+
+# Analysis figures and exported results
+*.pdf
+Benchmark_table.txt
