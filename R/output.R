@@ -633,7 +633,7 @@ plot_macrophage_umap <- function(result,
   # Combine plots
   # --------------------------------------------------
 
-  combined_plot <- p_clusters + p_profiles
+  combined_plot <- patchwork::wrap_plots(p_clusters, p_profiles, ncol = 2)
 
   return(combined_plot)
 }

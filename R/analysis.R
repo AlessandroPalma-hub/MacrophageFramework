@@ -348,7 +348,7 @@ analyze_macrophage_profile <- function(
 
   assay_object <- object[[assay]]
 
-  available_layers <- Layers(assay_object)
+  available_layers <- SeuratObject::Layers(assay_object)
 
   if (is.null(layer)) {
 
@@ -383,7 +383,7 @@ analyze_macrophage_profile <- function(
   matrices <- lapply(
     layer_names,
     function(x) {
-      LayerData(
+      SeuratObject::LayerData(
         object = assay_object,
         layer = x
       )
