@@ -111,7 +111,9 @@ demo_seurat <- RunUMAP(
 
 # Running MacrophageFramework
 
-MacrophageFramework analyses the Seurat object and returns macrophage detection results, program-level scores, coverage, coherence, cluster profiles, and profile similarity.
+MacrophageFramework supports two input modes: a Seurat object, or an expression matrix accompanied by cluster assignments. The Seurat-based mode can also provide dimensionality-reduction coordinates for embedding-based visualizations.
+
+The following example illustrates the Seurat-based workflow.
 
 ```{r framework-analysis, eval=FALSE}
 demo_result <- analyze_macrophage_profile(
@@ -126,6 +128,30 @@ demo_result <- analyze_macrophage_profile(
   output_dir = "MacrophageFramework_demo_output"
 )
 ```
+
+## Alternative input: expression matrix and cluster assignments
+
+The framework can also be used without a Seurat object. In this mode, the input must be a gene-by-cell expression matrix and a vector containing one cluster assignment for each cell. Gene names must be provided as matrix row names, and cell identifiers as column names.
+
+```{r matrix-input, eval=FALSE}
+# Expression matrix: genes x cells
+# Cluster labels: one assignment per cell
+
+counts <- ...  # Replace with a matrix or sparse Matrix of expression values
+cluster_labels <- ...  # Replace with cluster labels matching the cells
+
+matrix_result <- analyze_macrophage_profile(
+  expression = counts,
+  clusters = cluster_labels,
+  detect_macrophages = TRUE,
+  min_core_score = 0.1,
+  species = "Human",
+  save_outputs = TRUE,
+  output_dir = "MacrophageFramework_matrix_output"
+)
+```
+
+This input mode supports expression-based profiling without requiring a Seurat object. Embedding-based visualizations require an available dimensionality-reduction embedding supplied through the supported object-based input mode.
 
 # Results
 ```{r load-results, include=FALSE}
