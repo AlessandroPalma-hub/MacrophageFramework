@@ -47,8 +47,13 @@ For a Seurat object:
 library(MacrophageFramework)
 
 result <- analyze_macrophage_profile(
-  object = seu_object,
-  species = "Human"
+  object = seurat_object, #or counts if working with a gene expression count matrix
+  ontology = load_ontology(),
+  assay = "RNA",
+  layer = "counts",
+  species = "Human", #specify Human/Mouse
+  output_dir = output_dir,
+  save_outputs = TRUE
 )
 ```
 
