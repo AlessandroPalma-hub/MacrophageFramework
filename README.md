@@ -51,11 +51,12 @@ result <- analyze_macrophage_profile(
   ontology = load_ontology("v0.4"),
   assay = "RNA",
   layer = "counts",
-  species = "Human",
+  species = "Human", #Specify Human/Mouse
   output_dir = "MacrophageFramework_output",
   save_outputs = TRUE
 )
 ```
+
 
 If using a gene expression count matrix:
 
@@ -64,7 +65,7 @@ library(MacrophageFramework)
 
 result <- analyze_macrophage_profile(
   expression = counts_matrix,
-  clusters = cluster_labels,
+  clusters = cluster_labels, # pre-existing cluster assignment for each cell
   ontology = load_ontology("v0.4"),
   species = "Human",
   output_dir = "MacrophageFramework_output",
