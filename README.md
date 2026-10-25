@@ -86,7 +86,13 @@ Version 0.99.0 represents the development version being prepared for Bioconducto
 
 ## Citation
 
-A formal citation will be added when the associated manuscript and software release are finalized.
+The conceptual and biological framework underlying MacrophageFramework is described in the following publication:
+
+Palma A. A Multidimensional Framework for Interpreting Macrophage Markers in the Era of Cellular Heterogeneity. Immunology. 2026;0:1–15. https://doi.org/10.1111/imm.70208
+
+If you use MacrophageFramework in your research, please cite this publication and the software-specific publication listed below when available.
+
+Software-specific publication: Citation to the MacrophageFramework preprint and final peer-reviewed article will be added as they become available.
 
 ## License
 
