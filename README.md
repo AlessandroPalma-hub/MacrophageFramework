@@ -47,12 +47,27 @@ For a Seurat object:
 library(MacrophageFramework)
 
 result <- analyze_macrophage_profile(
-  object = seurat_object, #or counts if working with a gene expression count matrix
-  ontology = load_ontology(),
+  object = seurat_object,
+  ontology = load_ontology("v0.4"),
   assay = "RNA",
   layer = "counts",
-  species = "Human", #specify Human/Mouse
-  output_dir = output_dir,
+  species = "Human",
+  output_dir = "MacrophageFramework_output",
+  save_outputs = TRUE
+)
+```
+
+If using a gene expression count matrix:
+
+```r
+library(MacrophageFramework)
+
+result <- analyze_macrophage_profile(
+  expression = counts_matrix,
+  clusters = cluster_labels,
+  ontology = load_ontology("v0.4"),
+  species = "Human",
+  output_dir = "MacrophageFramework_output",
   save_outputs = TRUE
 )
 ```
