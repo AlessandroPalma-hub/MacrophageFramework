@@ -337,7 +337,7 @@ summarize_cluster_scores <- function(scores,
   # Calculate mean score for each program within each cluster
   cluster_ids <- unique(cluster_labels)
 
-  cluster_scores <- sapply(
+  cluster_scores <- vapply(
     cluster_ids,
     function(cluster) {
 
@@ -351,7 +351,8 @@ summarize_cluster_scores <- function(scores,
       cluster_mean[is.nan(cluster_mean)] <- NA_real_
 
       cluster_mean
-    }
+    },
+    FUN.VALUE = numeric(nrow(scores))
   )
 
   # Make sure the result is a matrix

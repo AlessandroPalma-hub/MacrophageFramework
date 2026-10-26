@@ -1,9 +1,55 @@
 #' Summarize macrophage profiles in a human-readable table
 #'
-#' @param result Output from analyze_macrophage_profile().
-#' @param clusters Optional vector of cell-level cluster assignments.
+#' Converts the results of a Macrophage Framework analysis into a
+#' data frame containing cluster-level identity, lineage, functional
+#' state, and other profile information.
 #'
-#' @return A data.frame summarizing the multidimensional macrophage profiles.
+#' @param result Output from \code{analyze_macrophage_profile()}.
+#' @param clusters Optional vector of cell-level cluster assignments,
+#'   used to calculate the number of cells in each cluster.
+#'
+#' @return A data.frame summarizing the multidimensional macrophage
+#'   profiles, including cluster identity, lineage, functional state,
+#'   profile labels, and program-level scores and diagnostics.
+#'
+#' @examples
+#' ontology <- load_ontology("v0.4")
+#'
+#' genes <- unique(
+#'   ontology$Gene[
+#'     !is.na(ontology$Gene) & nzchar(ontology$Gene)
+#'   ]
+#' )
+#'
+#' set.seed(1)
+#' expression <- matrix(
+#'   sample(1:5, length(genes) * 6, replace = TRUE),
+#'   nrow = length(genes),
+#'   dimnames = list(
+#'     genes,
+#'     paste0("Cell", seq_len(6))
+#'   )
+#' )
+#'
+#' clusters <- rep(c("Cluster1", "Cluster2"), each = 3)
+#'
+#' result <- analyze_macrophage_profile(
+#'   expression = expression,
+#'   clusters = clusters,
+#'   ontology = ontology,
+#'   detect_macrophages = FALSE,
+#'   macrophage_clusters = unique(clusters),
+#'   species = "Human",
+#'   save_outputs = FALSE
+#' )
+#'
+#' summary <- summarize_macrophage_profile(
+#'   result = result,
+#'   clusters = clusters
+#' )
+#'
+#' head(summary)
+#'
 #' @export
 summarize_macrophage_profile <- function(
     result,
@@ -208,14 +254,37 @@ summarize_macrophage_profile <- function(
 #'   profiles for the analyzed clusters.
 #'
 #' @examples
-#' \dontrun{
+#' ontology <- load_ontology("v0.4")
+#'
+#' genes <- unique(
+#'   ontology$Gene[
+#'     !is.na(ontology$Gene) & nzchar(ontology$Gene)
+#'   ]
+#' )
+#'
+#' set.seed(1)
+#' expression <- matrix(
+#'   sample(1:5, length(genes) * 6, replace = TRUE),
+#'   nrow = length(genes),
+#'   dimnames = list(
+#'     genes,
+#'     paste0("Cell", seq_len(6))
+#'   )
+#' )
+#'
+#' clusters <- rep(c("Cluster1", "Cluster2"), each = 3)
+#'
 #' result <- analyze_macrophage_profile(
-#'   expression = expression_matrix,
-#'   clusters = cluster_labels
+#'   expression = expression,
+#'   clusters = clusters,
+#'   ontology = ontology,
+#'   detect_macrophages = FALSE,
+#'   macrophage_clusters = unique(clusters),
+#'   species = "Human",
+#'   save_outputs = FALSE
 #' )
 #'
 #' plot_macrophage_profile(result)
-#' }
 #'
 #' @importFrom ggplot2 ggplot aes geom_line geom_point labs theme_classic theme element_text
 #' @export
@@ -345,14 +414,37 @@ plot_macrophage_profile <- function(result) {
 #'   profile similarity.
 #'
 #' @examples
-#' \dontrun{
+#' ontology <- load_ontology("v0.4")
+#'
+#' genes <- unique(
+#'   ontology$Gene[
+#'     !is.na(ontology$Gene) & nzchar(ontology$Gene)
+#'   ]
+#' )
+#'
+#' set.seed(1)
+#' expression <- matrix(
+#'   sample(1:5, length(genes) * 6, replace = TRUE),
+#'   nrow = length(genes),
+#'   dimnames = list(
+#'     genes,
+#'     paste0("Cell", seq_len(6))
+#'   )
+#' )
+#'
+#' clusters <- rep(c("Cluster1", "Cluster2"), each = 3)
+#'
 #' result <- analyze_macrophage_profile(
-#'   expression = expression_matrix,
-#'   clusters = cluster_labels
+#'   expression = expression,
+#'   clusters = clusters,
+#'   ontology = ontology,
+#'   detect_macrophages = FALSE,
+#'   macrophage_clusters = unique(clusters),
+#'   species = "Human",
+#'   save_outputs = FALSE
 #' )
 #'
 #' plot_macrophage_similarity(result)
-#' }
 #'
 #' @importFrom ggplot2 ggplot aes geom_tile geom_text scale_fill_viridis_c labs coord_equal theme_classic
 #' @export
@@ -460,20 +552,58 @@ plot_macrophage_similarity <- function(result) {
 #'   Framework profile annotations.
 #'
 #' @examples
-#' \dontrun{
+#' ontology <- load_ontology("v0.4")
+#'
+#' genes <- unique(
+#'   ontology$Gene[
+#'     !is.na(ontology$Gene) & nzchar(ontology$Gene)
+#'   ]
+#' )
+#'
+#' set.seed(1)
+#' cells <- paste0("Cell", seq_len(6))
+#'
+#' expression <- matrix(
+#'   sample(1:5, length(genes) * length(cells), replace = TRUE),
+#'   nrow = length(genes),
+#'   dimnames = list(genes, cells)
+#' )
+#'
+#' clusters <- rep(c("Cluster1", "Cluster2"), each = 3)
+#'
 #' result <- analyze_macrophage_profile(
-#'   object = seurat_object,
-#'   species = "Human"
+#'   expression = expression,
+#'   clusters = clusters,
+#'   ontology = ontology,
+#'   detect_macrophages = FALSE,
+#'   macrophage_clusters = unique(clusters),
+#'   species = "Human",
+#'   save_outputs = FALSE
+#' )
+#'
+#' seurat_object <- SeuratObject::CreateSeuratObject(
+#'   counts = expression
+#' )
+#'
+#' embeddings <- matrix(
+#'   rnorm(length(cells) * 2),
+#'   nrow = length(cells),
+#'   dimnames = list(cells, c("UMAP_1", "UMAP_2"))
+#' )
+#'
+#' seurat_object[["umap"]] <- SeuratObject::CreateDimReducObject(
+#'   embeddings = embeddings,
+#'   key = "UMAP_",
+#'   assay = "RNA"
 #' )
 #'
 #' plot_macrophage_umap(
 #'   result = result,
 #'   object = seurat_object,
-#'   clusters = seurat_object$seurat_clusters,
-#'   cell_names = colnames(seurat_object),
+#'   clusters = clusters,
+#'   cell_names = cells,
 #'   reduction = "umap"
 #' )
-#' }
 #'
 #' @importFrom ggplot2 ggplot aes geom_point labs theme_classic theme
 #' @export
@@ -502,10 +632,8 @@ plot_macrophage_umap <- function(result,
 
   if (!reduction %in% SeuratObject::Reductions(object)) {
     stop(
-      paste0(
-        "Reduction '", reduction,
-        "' not found in the Seurat object."
-      )
+      "Reduction '", reduction,
+      "' not found in the Seurat object."
     )
   }
 
@@ -723,7 +851,7 @@ plot_macrophage_umap <- function(result,
         size = 14
       )
     )
-  ggplot2::labs(
+  p <- p + ggplot2::labs(
     title = title,
     x = NULL,
     y = NULL,

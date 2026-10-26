@@ -342,10 +342,19 @@ calculate_cell_coherence_diagnostics <- function(expression,
 
 #' Summarize program coherence by cluster
 #'
-#' @param cell_coherence Program-by-cell coherence matrix.
-#' @param cluster_labels Cluster assignment for each cell.
+#' Calculates the median and interquartile range (IQR) of each
+#' program's cell-level coherence within each cluster. Non-finite
+#' values are excluded from the calculations.
 #'
-#' @return A list containing cluster median and IQR coherence.
+#' @param cell_coherence Numeric matrix of program-by-cell coherence
+#'   values, with programs in rows and cells in columns.
+#' @param cluster_labels Vector assigning one cluster label to each
+#'   cell, in the same order as the columns of \code{cell_coherence}.
+#'
+#' @return A list containing two matrices, \code{median} and
+#'   \code{IQR}. Both matrices have programs in rows and clusters
+#'   in columns. Entries remain \code{NA} when a program-cluster
+#'   combination has no finite coherence values.
 summarize_cluster_coherence <- function(cell_coherence,
                                         cluster_labels) {
 

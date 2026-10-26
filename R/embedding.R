@@ -44,7 +44,7 @@
       )
     }
 
-    embedding <- embedding[, 1:2, drop = FALSE]
+    embedding <- embedding[, seq_len(2), drop = FALSE]
 
     return(embedding)
   }
@@ -83,7 +83,7 @@
     )
   }
 
-  embedding <- embedding[, 1:2, drop = FALSE]
+  embedding <- embedding[, seq_len(2), drop = FALSE]
 
   return(embedding)
 }
