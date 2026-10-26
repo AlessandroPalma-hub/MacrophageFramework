@@ -37,9 +37,9 @@ test_that("program scores identify expected toy programs", {
     ontology = ontology
   )
 
-  # Cell_A: Core
+  # Cell_A: Monocyte-associated
   expect_gt(
-    result$scores["Core", "Cell_A"],
+    result$scores["Monocyte-associated", "Cell_A"],
     0
   )
 
@@ -70,7 +70,7 @@ test_that("detection coverage works", {
   expect_true(is.matrix(detection))
 
   expect_equal(
-    detection["Core", "Cell_A"],
+    detection["Monocyte-associated", "Cell_A"],
     1
   )
 

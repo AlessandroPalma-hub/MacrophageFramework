@@ -6,7 +6,7 @@ test_that("ontology loads correctly", {
 
   expect_equal(
     nrow(ontology),
-    29
+    36
   )
 
   expect_true(
@@ -16,8 +16,8 @@ test_that("ontology loads correctly", {
         "Program",
         "Gene",
         "Weight",
-        "Program_specificity",
-        "Context_dependence"
+        "Program.specificity",
+        "Context.dependence"
       ) %in% colnames(ontology)
     )
   )
