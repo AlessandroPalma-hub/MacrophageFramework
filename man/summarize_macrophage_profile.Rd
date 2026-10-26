@@ -7,13 +7,57 @@
 summarize_macrophage_profile(result, clusters = NULL)
 }
 \arguments{
-\item{result}{Output from analyze_macrophage_profile().}
+\item{result}{Output from \code{analyze_macrophage_profile()}.}
 
-\item{clusters}{Optional vector of cell-level cluster assignments.}
+\item{clusters}{Optional vector of cell-level cluster assignments,
+used to calculate the number of cells in each cluster.}
 }
 \value{
-A data.frame summarizing the multidimensional macrophage profiles.
+A data.frame summarizing the multidimensional macrophage
+  profiles, including cluster identity, lineage, functional state,
+  profile labels, and program-level scores and diagnostics.
 }
 \description{
-Summarize macrophage profiles in a human-readable table
+Converts the results of a Macrophage Framework analysis into a
+data frame containing cluster-level identity, lineage, functional
+state, and other profile information.
+}
+\examples{
+ontology <- load_ontology("v0.4")
+
+genes <- unique(
+  ontology$Gene[
+    !is.na(ontology$Gene) & nzchar(ontology$Gene)
+  ]
+)
+
+set.seed(1)
+expression <- matrix(
+  sample(1:5, length(genes) * 6, replace = TRUE),
+  nrow = length(genes),
+  dimnames = list(
+    genes,
+    paste0("Cell", seq_len(6))
+  )
+)
+
+clusters <- rep(c("Cluster1", "Cluster2"), each = 3)
+
+result <- analyze_macrophage_profile(
+  expression = expression,
+  clusters = clusters,
+  ontology = ontology,
+  detect_macrophages = FALSE,
+  macrophage_clusters = unique(clusters),
+  species = "Human",
+  save_outputs = FALSE
+)
+
+summary <- summarize_macrophage_profile(
+  result = result,
+  clusters = clusters
+)
+
+head(summary)
+
 }

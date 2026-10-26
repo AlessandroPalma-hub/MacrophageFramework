@@ -25,13 +25,36 @@ Higher values indicate greater similarity between profiles. The diagonal
 represents the similarity of each profile with itself.
 }
 \examples{
-\dontrun{
+ontology <- load_ontology("v0.4")
+
+genes <- unique(
+  ontology$Gene[
+    !is.na(ontology$Gene) & nzchar(ontology$Gene)
+  ]
+)
+
+set.seed(1)
+expression <- matrix(
+  sample(1:5, length(genes) * 6, replace = TRUE),
+  nrow = length(genes),
+  dimnames = list(
+    genes,
+    paste0("Cell", seq_len(6))
+  )
+)
+
+clusters <- rep(c("Cluster1", "Cluster2"), each = 3)
+
 result <- analyze_macrophage_profile(
-  expression = expression_matrix,
-  clusters = cluster_labels
+  expression = expression,
+  clusters = clusters,
+  ontology = ontology,
+  detect_macrophages = FALSE,
+  macrophage_clusters = unique(clusters),
+  species = "Human",
+  save_outputs = FALSE
 )
 
 plot_macrophage_similarity(result)
-}
 
 }

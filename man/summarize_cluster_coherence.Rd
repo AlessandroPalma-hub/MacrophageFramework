@@ -7,13 +7,20 @@
 summarize_cluster_coherence(cell_coherence, cluster_labels)
 }
 \arguments{
-\item{cell_coherence}{Program-by-cell coherence matrix.}
+\item{cell_coherence}{Numeric matrix of program-by-cell coherence
+values, with programs in rows and cells in columns.}
 
-\item{cluster_labels}{Cluster assignment for each cell.}
+\item{cluster_labels}{Vector assigning one cluster label to each
+cell, in the same order as the columns of \code{cell_coherence}.}
 }
 \value{
-A list containing cluster median and IQR coherence.
+A list containing two matrices, \code{median} and
+  \code{IQR}. Both matrices have programs in rows and clusters
+  in columns. Entries remain \code{NA} when a program-cluster
+  combination has no finite coherence values.
 }
 \description{
-Summarize program coherence by cluster
+Calculates the median and interquartile range (IQR) of each
+program's cell-level coherence within each cluster. Non-finite
+values are excluded from the calculations.
 }
