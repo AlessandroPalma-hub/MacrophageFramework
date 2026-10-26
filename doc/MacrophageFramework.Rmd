@@ -1,0 +1,297 @@
+---
+title: "A multidimensional framework for macrophage profiling with MacrophageFramework"
+author: "Alessandro Palma"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{A multidimensional framework for macrophage profiling with MacrophageFramework}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = TRUE
+)
+
+library(MacrophageFramework)
+```
+
+# Introduction
+
+Macrophage identity and functional state cannot always be captured by a single marker or a binary activation label. Lineage-associated features and functional programs can vary partly independently, and cells assigned to the same computational cluster may show heterogeneous expression patterns.
+
+`MacrophageFramework` provides a multidimensional, expression-based workflow that separates an initial macrophage-detection step from the subsequent characterization of lineage-associated and functional programs. The framework returns quantitative profiles and comparison metrics rather than requiring each cluster to be assigned one definitive biological label.
+
+This vignette demonstrates the workflow using a small subset of a publicly available human breast cancer single-cell dataset (GEO accession GSE114725). The example illustrates the software workflow; it is not intended as a comprehensive reanalysis of the original study. The framework itself is not restricted to breast cancer.
+
+# Demonstration dataset
+
+The package includes a Seurat object containing 2,000 cells and 14,875 genes. The object includes expression data, cell metadata, cluster assignments, and a UMAP embedding.
+
+```{r load-data}
+demo_file <- system.file(
+  "extdata",
+  "GSE114725_demo.rds",
+  package = "MacrophageFramework"
+)
+
+if (!nzchar(demo_file) || !file.exists(demo_file)) {
+  stop("The demonstration Seurat object was not found in the installed package.")
+}
+
+demo_seurat <- readRDS(demo_file)
+
+dim(demo_seurat)
+colnames(demo_seurat[[]])
+Seurat::Reductions(demo_seurat)
+SeuratObject::Layers(demo_seurat[["RNA"]])
+```
+
+The demonstration object is provided to make the vignette lightweight and reproducible. The original dataset can be retrieved from the Gene Expression Omnibus using accession [GSE114725](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE114725).
+
+# Input and clustering
+
+`analyze_macrophage_profile()` accepts either:
+
+1. a Seurat object, from which expression data and cluster identities are extracted; or
+2. an expression matrix with genes in rows and cells in columns, accompanied by one cluster label per cell.
+
+For a Seurat object, the function uses the active identities returned by `Seurat::Idents(object)`. Seurat objects may contain several alternative clusterings in their metadata, so explicitly set the intended clustering before running the framework. The cell names in the identity vector are used to align cluster labels with the expression matrix.
+
+In this example, we explicitly select `seurat_clusters`:
+
+```{r select-clusters}
+Seurat::Idents(demo_seurat) <- "seurat_clusters"
+
+table(Seurat::Idents(demo_seurat))
+```
+
+The framework does not perform clustering or change the cluster assignments. The cluster is the primary unit for the summarized profiles, while cell-level values can be used to examine the distribution and heterogeneity of program scores within clusters.
+
+# Run MacrophageFramework
+
+The following call runs the analysis on the demonstration object. `layer = "counts"` selects the RNA count layer, and `reduction = "umap"` makes the existing UMAP coordinates available to output routines that use an embedding. Setting `save_outputs = FALSE` avoids writing files when building the vignette; the results remain available in the returned R object.
+
+```{r framework-analysis}
+demo_result <- analyze_macrophage_profile(
+  object = demo_seurat,
+  assay = "RNA",
+  layer = "counts",
+  reduction = "umap",
+  detect_macrophages = TRUE,
+  min_core_score = 0.1,
+  species = "Human",
+  save_outputs = FALSE
+)
+
+names(demo_result)
+demo_result$analyzed_clusters
+length(demo_result$analyzed_cells)
+```
+
+## Macrophage detection
+
+When `detect_macrophages = TRUE`, the framework evaluates a macrophage-associated core signature and uses the `min_core_score` threshold to identify clusters for downstream profiling. In this example, the threshold is set to `0.1`. This is an operational parameter for screening candidate clusters, not a universally validated biological cutoff; results should be interpreted in the context of the dataset and independently assessed where possible.
+
+The detector output includes cluster-level metrics and a status indicating whether each cluster passed the inclusion criterion. The percentage of detectable cells and the core coverage/coherence metrics provide additional context, but they are not interchangeable with the core score.
+
+```{r detector-summary}
+detector_table <- demo_result$macrophage_detection$cluster_metrics
+
+if (!is.null(detector_table)) {
+  knitr::kable(
+    detector_table[
+      order(as.numeric(as.character(detector_table$Cluster))),
+      c(
+        "Cluster",
+        "n_cells",
+        "macrophage_core_score",
+        "macrophage_core_coverage",
+        "macrophage_core_coherence",
+        "pct_detectable",
+        "Status"
+      )
+    ],
+    digits = 3,
+    caption = "Cluster-level macrophage detector metrics for the demonstration dataset."
+  )
+}
+```
+
+Only cells belonging to the included clusters are used for downstream framework profiling. The full detector table is retained in `demo_result$macrophage_detection`, allowing users to inspect both included and excluded clusters.
+
+### Manually specifying macrophage clusters
+
+If macrophage clusters have already been identified using independent evidence, the detector can be bypassed by setting `detect_macrophages = FALSE` and supplying their labels through `macrophage_clusters`. The labels must match the cluster identities in the object (or the `clusters` vector when using a matrix).
+
+```{r manual-clusters, eval=FALSE}
+manual_result <- analyze_macrophage_profile(
+  object = demo_seurat,
+  assay = "RNA",
+  layer = "counts",
+  reduction = "umap",
+  detect_macrophages = FALSE,
+  macrophage_clusters = c("2", "3", "5"),
+  species = "Human",
+  save_outputs = FALSE
+)
+```
+
+The labels in this example are illustrative of the demonstration clustering. For a new dataset, replace them with cluster labels justified by the user's own analysis. In this mode, `macrophage_detection` is `NULL`, because the independent detector was not run.
+
+# Multidimensional program profiles
+
+After cluster selection, the framework summarizes expression across the programs in the selected ontology. The default ontology is version `v0.4`, which includes two lineage-associated programs (`Monocyte-associated` and `Resident-associated`) and five functional-state programs (`Inflammatory`, `Repair-associated`, `Lipid-associated`, `ECM-remodeling`, and `IFN-responsive`).
+
+The profile is multidimensional: a cluster can show signals from several programs at once. Program scores should therefore be interpreted as quantitative expression-derived measures, not probabilities, mutually exclusive classes, or proof of cellular ontogeny.
+
+## Program intensity (score)
+
+The program score summarizes the expression signal associated with the genes and weights defined for each program. The framework starts from the supplied expression values, performs transcriptome-wide library-size normalization with a scale factor of 10,000, applies `log1p`, and calculates a weighted mean over the genes belonging to each program.
+
+```{r program-scores}
+dim(demo_result$profile$scores)
+round(demo_result$profile$scores, 3)
+```
+
+A higher score indicates a stronger expression-derived signal for that program under the framework's scoring procedure. Scores are not probabilities and should not be interpreted as a direct estimate of the proportion of cells in a biological state.
+
+## Program coverage
+
+Coverage summarizes the fraction of program genes detected, without applying the program weights. It complements intensity: two clusters can have similar scores but differ in how broadly the program genes are detected.
+
+```{r program-coverage}
+dim(demo_result$profile$coverage)
+round(demo_result$profile$coverage, 3)
+```
+
+## Program coherence
+
+Coherence summarizes pairwise agreement among observed genes within a program, using the program gene weights. It is intended as a diagnostic measure of the consistency of the observed expression pattern, not as an independent validation of biological function. At least two observed program genes are required; where this requirement is not met, the coherence value is `NA`, not zero.
+
+```{r program-coherence}
+dim(demo_result$profile$coherence)
+round(demo_result$profile$coherence, 3)
+```
+
+The profile also contains `coherence_IQR`, which describes the interquartile range of the cell-level coherence values for each program and cluster:
+
+```{r coherence-variability}
+round(demo_result$profile$coherence_IQR, 3)
+```
+
+## Similarity between cluster profiles
+
+The similarity matrix compares clusters using cosine similarity between their program-intensity vectors. It describes resemblance between the multidimensional profiles; it does not establish that clusters are identical, should be merged, or share the same developmental origin.
+
+```{r profile-similarity}
+dim(demo_result$similarity)
+round(demo_result$similarity, 3)
+```
+
+# Visual summaries
+
+The package includes precomputed figures from the demonstration workflow so that the vignette can show the visual outputs without requiring each plot to be regenerated during every build. These images are illustrative outputs bundled with the vignette; the code above separately runs the analysis and exposes its returned results.
+
+## Original computational clusters
+
+The original clustering provides the computational context for macrophage detection and characterization.
+
+![Original computational clusters](figures/10_UMAP_original_clusters.png){width=100%}
+
+## Macrophage detection
+
+The detector visualization summarizes which clusters were selected for downstream profiling. Detection is a computational screening step and should not be treated as a substitute for independent validation.
+
+![Macrophage detector](figures/11_UMAP_macrophage_detector.png){width=100%}
+
+## Multidimensional framework annotation
+
+The framework represents selected clusters through combinations of lineage-associated and functional programs rather than forcing each cluster into a single activation category.
+
+![Framework annotation](figures/12_UMAP_framework_annotation.png){width=100%}
+
+## Program intensity
+
+![Program intensity](figures/13_heatmap_program_scores.png){width=100%}
+
+## Program coverage
+
+![Program coverage](figures/14_heatmap_program_coverage.png){width=100%}
+
+## Program coherence
+
+![Program coherence](figures/15_heatmap_program_coherence.png){width=100%}
+
+## Similarity between cluster profiles
+
+![Profile similarity](figures/16_heatmap_profile_similarity.png){width=100%}
+
+# Alternative input: expression matrix and cluster assignments
+
+The matrix-based mode is useful when expression data and cluster labels are already available outside a Seurat object. The matrix must have genes as rows, cells as columns, gene names as row names, and cell identifiers as column names. `clusters` must contain one non-missing label per matrix column, in the same cell order.
+
+The following example extracts the count matrix and matching identities from the demonstration object. It is not evaluated during the vignette build because it repeats the same analysis using the alternative input interface.
+
+```{r matrix-input, eval=FALSE}
+counts <- Seurat::GetAssayData(
+  demo_seurat,
+  assay = "RNA",
+  layer = "counts"
+)
+
+cluster_labels <- Seurat::Idents(demo_seurat)[colnames(counts)]
+
+matrix_result <- analyze_macrophage_profile(
+  expression = counts,
+  clusters = cluster_labels,
+  detect_macrophages = TRUE,
+  min_core_score = 0.1,
+  species = "Human",
+  save_outputs = FALSE
+)
+```
+
+For non-Seurat inputs, the framework does not receive a dimensionality-reduction embedding through this interface. The matrix and cluster vector must be aligned correctly; the function checks that the number of cluster labels equals the number of cells and that gene and cell names are present.
+
+# Outputs and interpretation
+
+The returned object is a list. Commonly used elements include:
+
+- `macrophage_detection`: detector metrics and included/excluded clusters when detection is enabled; `NULL` when detection is bypassed.
+- `profile`: cluster-level program scores, coverage, coherence, and coherence interquartile ranges.
+- `scores` and `coherence`: cell-level program score and coherence matrices.
+- `similarity`: pairwise similarity between the profiled cluster vectors.
+- `hierarchy`: hierarchical relationships derived from profile similarity.
+- `annotations`: concise textual summaries generated from the multidimensional profiles.
+- `embedding`: embedding coordinates when requested and available.
+- `analyzed_cells` and `analyzed_clusters`: cells and clusters retained for downstream profiling.
+- `ontology`: the ontology used for the analysis.
+- `saved_files`: paths returned by the output-saving routine, when `save_outputs = TRUE`.
+
+The complete structure can be inspected with:
+
+```{r inspect-outputs, eval=FALSE}
+str(demo_result, max.level = 1)
+```
+
+Interpret the quantitative profile as the primary result. Text annotations are secondary summaries and should not replace inspection of scores, coverage, coherence, cluster size, and the underlying biological context. The framework does not infer definitive developmental origin from lineage-associated expression programs; markers associated with recruitment, residency, or functional state may reflect overlapping biological processes.
+
+# Reproducibility and limitations
+
+The demonstration object and bundled figures are intended to keep the vignette lightweight. The example does not replace a complete analysis of GSE114725 or independent biological validation.
+
+Results can depend on the expression layer supplied, the clustering used, the ontology version, species selection, and detector threshold. When applying the framework to a new dataset, users should document these choices, inspect detector metrics, and assess whether the included clusters are appropriate for the biological question. If clusters contain substantial internal heterogeneity, consider whether the original clustering resolution is suitable rather than interpreting a cluster-level summary as a uniform cellular state.
+
+For a complete analysis of the original dataset, retrieve GSE114725, document the preprocessing and clustering decisions, and rerun the framework on the intended cell population.
+
+# Session information
+
+```{r session-info}
+sessionInfo()
+```
