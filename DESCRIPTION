@@ -6,7 +6,8 @@ Authors@R:
     person(
         "Alessandro", "Palma",
         email = "alessandro.palma2@uniroma1.it",
-        role = c("aut", "cre", "cph")
+        role = c("aut", "cre", "cph"),
+        comment = c(ORCID = "0000-0003-1300-5479")
     )
 Description:
     Provides a multidimensional computational framework for macrophage
@@ -22,7 +23,7 @@ URL: https://github.com/AlessandroPalma-hub/MacrophageFramework
 BugReports: https://github.com/AlessandroPalma-hub/MacrophageFramework/issues
 Encoding: UTF-8
 Depends:
-    R (>= 4.3.0)
+    R (>= 4.4.0)
 Imports:
     ggplot2,
     Matrix,

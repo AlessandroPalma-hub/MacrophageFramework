@@ -47,29 +47,8 @@ For a Seurat object:
 library(MacrophageFramework)
 
 result <- analyze_macrophage_profile(
-  object = seurat_object,
-  ontology = load_ontology("v0.4"),
-  assay = "RNA",
-  layer = "counts",
-  species = "Human", #Specify Human/Mouse
-  output_dir = "MacrophageFramework_output",
-  save_outputs = TRUE
-)
-```
-
-
-If using a gene expression count matrix:
-
-```r
-library(MacrophageFramework)
-
-result <- analyze_macrophage_profile(
-  expression = counts_matrix,
-  clusters = cluster_labels, # pre-existing cluster assignment for each cell
-  ontology = load_ontology("v0.4"),
-  species = "Human",
-  output_dir = "MacrophageFramework_output",
-  save_outputs = TRUE
+  object = seu_object,
+  species = "Human"
 )
 ```
 
@@ -107,13 +86,7 @@ Version 0.99.0 represents the development version being prepared for Bioconducto
 
 ## Citation
 
-The conceptual and biological framework underlying MacrophageFramework is described in the following publication:
-
-Palma A. A Multidimensional Framework for Interpreting Macrophage Markers in the Era of Cellular Heterogeneity. Immunology. 2026;0:1–15. https://doi.org/10.1111/imm.70208
-
-If you use MacrophageFramework in your research, please cite this publication and the software-specific publication listed below when available.
-
-Software-specific publication: Citation to the MacrophageFramework preprint and final peer-reviewed article will be added as they become available.
+A formal citation will be added when the associated manuscript and software release are finalized.
 
 ## License
 
