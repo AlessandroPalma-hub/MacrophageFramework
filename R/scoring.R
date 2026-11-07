@@ -1,15 +1,14 @@
 #' Score macrophage biological programs
 #'
-#' Calculates weighted expression scores for the biological programs defined
+#' Calculates expression scores for the biological programs defined
 #' in the Macrophage Framework ontology. Expression values are normalized using
 #' the transcriptome-wide library size of each cell, scaled by
 #' \code{scale_factor}, and log-transformed before program scores are
 #' calculated.
 #'
 #' Only ontology genes detected in the supplied expression matrix are used for
-#' scoring. Program scores are calculated as the weighted mean of the
-#' log-transformed expression values of the genes belonging to each program.
-#' Gene weights are defined by the \code{Weight} column of the ontology.
+#' scoring. Program scores are calculated as the unweighted arithmetic mean of
+#' the log-transformed expression values of the genes belonging to each program.
 #'
 #' Program coverage is calculated as the proportion of ontology genes available
 #' in the expression matrix for each program. Coverage therefore describes
@@ -28,7 +27,7 @@
 #'
 #' @return A list containing:
 #' \describe{
-#'   \item{scores}{A program-by-cell matrix of weighted program scores.}
+#'   \item{scores}{A program-by-cell matrix of unweighted program scores.}
 #'   \item{genes_available}{The number of ontology genes available in the
 #'   expression matrix for each program.}
 #'   \item{genes_total}{The total number of genes defined for each program in
@@ -57,7 +56,6 @@
 #'
 #' @export
 #'
-
 score_programs <- function(expression,
                            ontology = NULL,
                            scale_factor = 10000,
@@ -76,7 +74,7 @@ score_programs <- function(expression,
     ontology <- load_ontology()
   }
 
-  required_cols <- c("Dimension", "Program", "Gene", "Weight")
+  required_cols <- c("Dimension", "Program", "Gene")
   if (!all(required_cols %in% colnames(ontology))) {
     stop("ontology is missing required columns.")
   }
@@ -149,41 +147,35 @@ score_programs <- function(expression,
   names(genes_available) <- programs
   names(genes_total) <- programs
 
-  # Calculate weighted program scores
+  # Calculate unweighted mean program scores
   for (program in programs) {
-
+    
     ontology_program <- ontology[
       ontology$Program == program,
       ,
       drop = FALSE
     ]
-
+    
     genes_total[program] <- nrow(ontology_program)
-
+    
     genes_program <- intersect(
       ontology_program$Gene,
       rownames(log_expression)
     )
-
+    
     genes_available[program] <- length(genes_program)
-
+    
     if (length(genes_program) == 0) {
       next
     }
-
-    weights <- ontology_program$Weight[
-      match(genes_program, ontology_program$Gene)
-    ]
-
+    
     values <- log_expression[
       genes_program,
       ,
       drop = FALSE
     ]
-
-    scores[program, ] <- Matrix::colSums(
-      values * weights
-    ) / sum(weights)
+    
+    scores[program, ] <- Matrix::colMeans(values)
   }
 
   coverage <- genes_available / genes_total

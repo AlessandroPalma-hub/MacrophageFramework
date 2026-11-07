@@ -35,7 +35,7 @@ load_ontology <- function(version = "v0.4") {
     )
   }
 
-  ontology <- utils::read.csv(
+  ontology <- utils::read.csv2(
     ontology_path,
     stringsAsFactors = FALSE
   )

@@ -179,8 +179,7 @@ analyze_macrophage_profile <- function(
   required_columns <- c(
     "Dimension",
     "Program",
-    "Gene",
-    "Weight"
+    "Gene"
   )
 
   if (!all(required_columns %in% colnames(ontology))) {

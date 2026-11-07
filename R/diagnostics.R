@@ -11,10 +11,10 @@
 #' unobserved and are excluded from the pairwise calculation.
 #'
 #' For each program and cell, pairwise relative expression differences are
-#' calculated among observed program genes and combined using the product of
-#' their ontology weights. The resulting coherence score is bounded between
-#' 0 and 1, with higher values indicating greater internal agreement among
-#' the observed genes of a program.
+#' calculated among observed program genes. Coherence is calculated as one
+#' minus the arithmetic mean of these pairwise differences. The resulting
+#' score is bounded between 0 and 1, with higher values indicating greater
+#' internal agreement among the observed genes of a program.
 #'
 #' Coherence is a diagnostic measure of internal program consistency and
 #' should not be interpreted as a probability, confidence score, or direct
@@ -25,8 +25,7 @@
 #'   must be provided as row names.
 #' @param ontology Optional Framework ontology data frame. If \code{NULL},
 #'   the default ontology is loaded with \code{\link{load_ontology}}.
-#'   The ontology must contain \code{Program}, \code{Gene}, and \code{Weight}
-#'   columns.
+#'   The ontology must contain \code{Program} and \code{Gene} columns.
 #' @param scale_factor Numeric scaling factor used for library-size
 #'   normalization. Defaults to \code{10000}.
 #'
@@ -73,7 +72,7 @@ calculate_program_coherence <- function(expression,
     ontology <- load_ontology()
   }
 
-  required_cols <- c("Program", "Gene", "Weight")
+  required_cols <- c("Program", "Gene")
 
   if (!all(required_cols %in% colnames(ontology))) {
     stop("ontology is missing required columns.")
@@ -138,13 +137,6 @@ calculate_program_coherence <- function(expression,
       next
     }
 
-    weights <- ontology_program$Weight[
-      match(
-        genes_program,
-        ontology_program$Gene
-      )
-    ]
-
     values <- as.matrix(
       log_expression[
         genes_program,
@@ -165,40 +157,30 @@ calculate_program_coherence <- function(expression,
       }
 
       x_obs <- x[observed]
-      w_obs <- weights[observed]
-
+      
       n <- length(x_obs)
-
+      
       pair_distance <- numeric(0)
-      pair_weight <- numeric(0)
-
+      
       for (i in seq_len(n - 1)) {
-
+        
         for (j in (i + 1):n) {
-
+          
           distance <- abs(
             x_obs[i] - x_obs[j]
           ) / (
             x_obs[i] + x_obs[j] + 1e-8
           )
-
-          weight <- w_obs[i] * w_obs[j]
-
+          
           pair_distance <- c(
             pair_distance,
             distance
           )
-
-          pair_weight <- c(
-            pair_weight,
-            weight
-          )
         }
       }
-
+      
       coherence[program, cell] <-
-        1 - sum(pair_distance * pair_weight) /
-        sum(pair_weight)
+        1 - mean(pair_distance)
     }
   }
 
@@ -252,8 +234,6 @@ calculate_cell_coherence_diagnostics <- function(expression,
     ]
 
     program_genes <- program_info$Gene
-    weights <- program_info$Weight
-    names(weights) <- program_genes
 
     if (length(program_genes) < 2) next
 
@@ -281,32 +261,25 @@ calculate_cell_coherence_diagnostics <- function(expression,
         }
 
         obs_values <- values[observed]
-        obs_weights <- weights[observed]
-
-        weighted_distance <- 0
-        total_weight <- 0
-
+        
+        pair_distance <- numeric(0)
+        
         for (a in seq_len(length(obs_values) - 1)) {
-
+          
           for (b in (a + 1):length(obs_values)) {
-
-            pair_weight <- obs_weights[a] * obs_weights[b]
-
+            
             relative_distance <-
               abs(obs_values[a] - obs_values[b]) /
               (obs_values[a] + obs_values[b] + 1e-8)
-
-            weighted_distance <-
-              weighted_distance +
-              pair_weight * relative_distance
-
-            total_weight <-
-              total_weight + pair_weight
+            
+            pair_distance <- c(
+              pair_distance,
+              relative_distance
+            )
           }
         }
-
-        cell_coherence[i] <-
-          1 - weighted_distance / total_weight
+        
+        cell_coherence[i] <- 1 - mean(pair_distance)
       }
 
       eligible <- !is.na(cell_coherence)

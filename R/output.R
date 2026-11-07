@@ -1,241 +1,173 @@
+
 #' Summarize macrophage profiles in a human-readable table
 #'
-#' Converts the results of a Macrophage Framework analysis into a
-#' data frame containing cluster-level identity, lineage, functional
-#' state, and other profile information.
+#' Returns cluster-level annotations and multidimensional
+#' program measurements, including intensity, coverage
+#' and coherence for all biological programs.
 #'
-#' @param result Output from \code{analyze_macrophage_profile()}.
-#' @param clusters Optional vector of cell-level cluster assignments,
-#'   used to calculate the number of cells in each cluster.
+#' The final annotation contains only Lineage and the
+#' primary Functional State. Secondary programs remain
+#' available through their individual measurements.
 #'
-#' @return A data.frame summarizing the multidimensional macrophage
-#'   profiles, including cluster identity, lineage, functional state,
-#'   profile labels, and program-level scores and diagnostics.
+#' @param result Output from analyze_macrophage_profile().
+#' @param clusters Optional vector of cell-level cluster assignments.
 #'
-#' @examples
-#' ontology <- load_ontology("v0.4")
-#'
-#' genes <- unique(
-#'   ontology$Gene[
-#'     !is.na(ontology$Gene) & nzchar(ontology$Gene)
-#'   ]
-#' )
-#'
-#' set.seed(1)
-#' expression <- matrix(
-#'   sample(1:5, length(genes) * 6, replace = TRUE),
-#'   nrow = length(genes),
-#'   dimnames = list(
-#'     genes,
-#'     paste0("Cell", seq_len(6))
-#'   )
-#' )
-#'
-#' clusters <- rep(c("Cluster1", "Cluster2"), each = 3)
-#'
-#' result <- analyze_macrophage_profile(
-#'   expression = expression,
-#'   clusters = clusters,
-#'   ontology = ontology,
-#'   detect_macrophages = FALSE,
-#'   macrophage_clusters = unique(clusters),
-#'   species = "Human",
-#'   save_outputs = FALSE
-#' )
-#'
-#' summary <- summarize_macrophage_profile(
-#'   result = result,
-#'   clusters = clusters
-#' )
-#'
-#' head(summary)
+#' @return A data.frame containing cluster annotations,
+#' cell numbers and all program-level measurements.
 #'
 #' @export
+
 summarize_macrophage_profile <- function(
     result,
     clusters = NULL
 ) {
-
+  
   # --------------------------------------------------
   # Input checks
   # --------------------------------------------------
-
+  
   if (!is.list(result)) {
     stop(
       "result must be the output of analyze_macrophage_profile()."
     )
   }
-
+  
   if (is.null(result$profile) ||
       is.null(result$profile$scores) ||
       is.null(result$profile$coverage) ||
       is.null(result$profile$coherence)) {
-
+    
     stop(
       "result does not contain a complete macrophage profile."
     )
   }
-
+  
+  if (is.null(result$annotations)) {
+    stop("result does not contain framework annotations.")
+  }
+  
   scores <- result$profile$scores
   coverage <- result$profile$coverage
   coherence <- result$profile$coherence
-
+  
   cluster_ids <- colnames(scores)
-
+  
   # --------------------------------------------------
   # Cluster sizes
   # --------------------------------------------------
-
+  
   cluster_size <- rep(
     NA_integer_,
     length(cluster_ids)
   )
-
+  
   names(cluster_size) <- cluster_ids
-
+  
   if (!is.null(clusters)) {
-
+    
     clusters <- as.character(clusters)
-
-    cluster_size <- table(clusters)
-
-    cluster_size <- cluster_size[cluster_ids]
-
+    
+    cluster_size <- table(clusters)[cluster_ids]
+    
     cluster_size <- as.integer(cluster_size)
   }
-
+  
   # --------------------------------------------------
-  # Hierarchy
+  # Framework annotations
   # --------------------------------------------------
-
-  hierarchy <- result$hierarchy
-
-  if (is.null(hierarchy$Lineage) ||
-      is.null(hierarchy$`Functional State`)) {
-
+  
+  annotations <- result$annotations
+  
+  required_columns <- c(
+    "Cluster",
+    "Lineage",
+    "Functional_State_1",
+    "Full_annotation"
+  )
+  
+  if (!all(required_columns %in% colnames(annotations))) {
     stop(
-      "result$hierarchy must contain 'Lineage' and 'Functional State'."
+      "result$annotations does not contain the expected columns."
     )
   }
-
-  lineage <- hierarchy$Lineage
-
-  functional <- hierarchy$`Functional State`
-
+  
+  annotation_index <- match(
+    cluster_ids,
+    as.character(annotations$Cluster)
+  )
+  
+  if (anyNA(annotation_index)) {
+    stop(
+      "Some profile clusters are missing from result$annotations."
+    )
+  }
+  
   # --------------------------------------------------
   # Build summary
   # --------------------------------------------------
-
+  
   summary <- data.frame(
     Cluster = cluster_ids,
     Cells = cluster_size,
-    Lineage = NA_character_,
-    FunctionalState = NA_character_,
-    ProfileLabel = NA_character_,
+    Lineage = annotations$Lineage[annotation_index],
+    FunctionalState1 =
+      annotations$Functional_State_1[annotation_index],
+    ProfileLabel =
+      annotations$Full_annotation[annotation_index],
     stringsAsFactors = FALSE
   )
-
-  for (i in seq_along(cluster_ids)) {
-
-    cl <- cluster_ids[i]
-
-    lineage_rank <- lineage[[cl]]
-    functional_rank <- functional[[cl]]
-
-    summary$Lineage[i] <-
-      if (length(lineage_rank) > 0) {
-        lineage_rank[1]
-      } else {
-        NA_character_
-      }
-
-    summary$FunctionalState[i] <-
-      if (length(functional_rank) > 0) {
-        functional_rank[1]
-      } else {
-        NA_character_
-      }
-
-    summary$ProfileLabel[i] <- paste(
-      summary$Lineage[i],
-      summary$FunctionalState[i],
-      sep = " / "
-    )
-  }
-
+  
   # --------------------------------------------------
   # Add program intensities
   # --------------------------------------------------
-
+  
   for (program in rownames(scores)) {
-
+    
     column_name <- paste0(
-      "Score_",
+      "Intensity_",
       gsub("[^A-Za-z0-9]+", "_", program)
     )
-
-    summary[[column_name]] <-
-      as.numeric(
-        scores[program, cluster_ids]
-      )
+    
+    summary[[column_name]] <- as.numeric(
+      scores[program, cluster_ids]
+    )
   }
-
+  
   # --------------------------------------------------
-  # Add coverage
+  # Add program coverage
   # --------------------------------------------------
-
+  
   for (program in rownames(coverage)) {
-
+    
     column_name <- paste0(
       "Coverage_",
       gsub("[^A-Za-z0-9]+", "_", program)
     )
-
-    summary[[column_name]] <-
-      as.numeric(
-        coverage[program, cluster_ids]
-      )
+    
+    summary[[column_name]] <- as.numeric(
+      coverage[program, cluster_ids]
+    )
   }
-
+  
   # --------------------------------------------------
-  # Add coherence
+  # Add program coherence
   # --------------------------------------------------
-
+  
   for (program in rownames(coherence)) {
-
+    
     column_name <- paste0(
       "Coherence_",
       gsub("[^A-Za-z0-9]+", "_", program)
     )
-
-    summary[[column_name]] <-
-      as.numeric(
-        coherence[program, cluster_ids]
-      )
-  }
-
-  # --------------------------------------------------
-  # Add dominant functional program
-  # --------------------------------------------------
-
-  summary$DominantFunctionalProgram <-
-    vapply(
-      cluster_ids,
-      function(cl) {
-
-        functional_rank <- functional[[cl]]
-
-        if (length(functional_rank) > 0) {
-          functional_rank[1]
-        } else {
-          NA_character_
-        }
-      },
-      character(1)
+    
+    summary[[column_name]] <- as.numeric(
+      coherence[program, cluster_ids]
     )
-
+  }
+  
   return(summary)
 }
+
 
 #' Plot multidimensional macrophage profiles
 #'
@@ -1021,7 +953,58 @@ plot_macrophage_umap <- function(result,
     )
     saved_files <- c(saved_files, f)
   }
-
+  # Export cluster-level metrics in long format
+  profile_scores <- result$profile$scores
+  profile_coverage <- result$profile$coverage
+  profile_coherence <- result$profile$coherence
+  
+  cluster_ids <- colnames(profile_scores)
+  programs <- rownames(profile_scores)
+  
+  profile_table <- expand.grid(
+    Cluster = cluster_ids,
+    Program = programs,
+    stringsAsFactors = FALSE
+  )
+  
+  row_idx <- match(profile_table$Program, rownames(profile_scores))
+  col_idx <- match(profile_table$Cluster, colnames(profile_scores))
+  
+  profile_table$Intensity <- profile_scores[
+    cbind(row_idx, col_idx)
+  ]
+  
+  profile_table$Coverage <- profile_coverage[
+    cbind(
+      match(profile_table$Program, rownames(profile_coverage)),
+      match(profile_table$Cluster, colnames(profile_coverage))
+    )
+  ]
+  
+  profile_table$Coherence <- profile_coherence[
+    cbind(
+      match(profile_table$Program, rownames(profile_coherence)),
+      match(profile_table$Cluster, colnames(profile_coherence))
+    )
+  ]
+  
+  if (!is.null(clusters)) {
+    cluster_counts <- table(as.character(clusters))
+    profile_table$Cells <- as.integer(
+      cluster_counts[profile_table$Cluster]
+    )
+  } else {
+    profile_table$Cells <- NA_integer_
+  }
+  
+  profile_table <- profile_table[
+    , c("Cluster", "Cells", "Program",
+        "Intensity", "Coverage", "Coherence")
+  ]
+  
+  f <- file.path(output_dir, "cluster_program_metrics.csv")
+  write.csv(profile_table, f, row.names = FALSE)
+  saved_files <- c(saved_files, f)
   if (!is.null(result$similarity)) {
     f <- file.path(output_dir, "09_profile_similarity.csv")
     write.csv(

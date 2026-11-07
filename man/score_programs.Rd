@@ -29,7 +29,7 @@ cell. If \code{NULL}, library sizes are calculated as the column sums of
 \value{
 A list containing:
 \describe{
-  \item{scores}{A program-by-cell matrix of weighted program scores.}
+  \item{scores}{A program-by-cell matrix of unweighted program scores.}
   \item{genes_available}{The number of ontology genes available in the
   expression matrix for each program.}
   \item{genes_total}{The total number of genes defined for each program in
@@ -39,7 +39,7 @@ A list containing:
 }
 }
 \description{
-Calculates weighted expression scores for the biological programs defined
+Calculates expression scores for the biological programs defined
 in the Macrophage Framework ontology. Expression values are normalized using
 the transcriptome-wide library size of each cell, scaled by
 \code{scale_factor}, and log-transformed before program scores are
@@ -47,9 +47,8 @@ calculated.
 }
 \details{
 Only ontology genes detected in the supplied expression matrix are used for
-scoring. Program scores are calculated as the weighted mean of the
-log-transformed expression values of the genes belonging to each program.
-Gene weights are defined by the \code{Weight} column of the ontology.
+scoring. Program scores are calculated as the unweighted arithmetic mean of
+the log-transformed expression values of the genes belonging to each program.
 
 Program coverage is calculated as the proportion of ontology genes available
 in the expression matrix for each program. Coverage therefore describes

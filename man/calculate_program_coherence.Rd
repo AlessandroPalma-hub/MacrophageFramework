@@ -13,8 +13,7 @@ must be provided as row names.}
 
 \item{ontology}{Optional Framework ontology data frame. If \code{NULL},
 the default ontology is loaded with \code{\link{load_ontology}}.
-The ontology must contain \code{Program}, \code{Gene}, and \code{Weight}
-columns.}
+The ontology must contain \code{Program} and \code{Gene} columns.}
 
 \item{scale_factor}{Numeric scaling factor used for library-size
 normalization. Defaults to \code{10000}.}
@@ -38,10 +37,10 @@ calculated. Genes with zero expression in a cell are treated as
 unobserved and are excluded from the pairwise calculation.
 
 For each program and cell, pairwise relative expression differences are
-calculated among observed program genes and combined using the product of
-their ontology weights. The resulting coherence score is bounded between
-0 and 1, with higher values indicating greater internal agreement among
-the observed genes of a program.
+calculated among observed program genes. Coherence is calculated as one
+minus the arithmetic mean of these pairwise differences. The resulting
+score is bounded between 0 and 1, with higher values indicating greater
+internal agreement among the observed genes of a program.
 
 Coherence is a diagnostic measure of internal program consistency and
 should not be interpreted as a probability, confidence score, or direct
